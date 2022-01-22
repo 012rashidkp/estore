@@ -1,4 +1,5 @@
 
+from email.policy import default
 from api.models import Cart
 from asyncore import write
 from itertools import product
@@ -14,12 +15,11 @@ from rest_framework import exceptions
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 User = get_user_model()
-from .models import Product,Category,Banner,ProductImage,ProductColor,ProductSize,CartProduct
+from .models import Product,Category,Banner,ProductImage,ProductColor,ProductSize,CartProduct,UploadFile
 
 class UserSerializer(serializers.ModelSerializer):
     userid = serializers.CharField(source='id', read_only=True)
-    password = serializers.CharField(
-        max_length=65, min_length=6, write_only=True)
+    password = serializers.CharField(max_length=65, min_length=6, write_only=True)
     email = serializers.EmailField(max_length=15, min_length=4),
     city = serializers.CharField(max_length=100, min_length=2)
     phone = serializers.CharField(max_length=10, min_length=2)
@@ -27,62 +27,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'city', 'email', 'password', 'phone', 'userid'
-                  ]
-
-    def validate(self, attrs):
-        email = attrs.get('email', '')
-
-        if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError(
-                {'email': 'Email is already in use'})
-             
-
-        phone = attrs.get('phone', '')
-
-        if User.objects.filter(phone=phone).exists():
-            raise serializers.ValidationError({'phone': 'phone number is already in use'
-                                               })
-
-        return super().validate(attrs)
-
-    def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
-
-
-class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField()
-    
-    def validate(self, data):
-        email = data.get("email", "")
-        password = data.get("password", "")
-
-        if email and password:
-            user = authenticate(email=email, password=password)
-            if user:
-                if user.is_active:
-                    data["user"] = user
-                else:
-                    msg = "User is deactivated."
-                    raise exceptions.ValidationError(msg)
-            else:
-                raise serializers.ValidationError({"message":"invalid credentials"}) 
-                
-        return data
-
+        fields = ['username', 'city', 'email', 'password', 'phone', 'userid']
 
     
-
-
-
-
-
-
-
-   
-
-
 
 
 
@@ -147,8 +94,10 @@ class Productserializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = ('prod_id', 'title', 'image', 'marked_price', 'selling_price', 'description', 
-                  'warranty', 'return_policy', 'view_count', 'category_name', 'cat_id', 'prodimages', 'prodcolors', 'prodsizes')
-    
+                  'warranty', 'return_policy', 'category_name', 'cat_id', 'prodimages', 'prodcolors', 'prodsizes')
+        
+        
+
     
 class CartSerializer(serializers.ModelSerializer):
     # user_id = serializers.IntegerField(source='User.id',write_only=True)
@@ -176,13 +125,20 @@ class CartItemSerializer(serializers.ModelSerializer):
         cart= CartSerializer.create(
             CartSerializer(), validated_data=cart_data)
 
-        prod, created = CartProduct.objects.update_or_create(cart=cart,
+        proditem, created = CartProduct.objects.update_or_create(cart=cart,
             product_id=validated_data.pop('product_id'),
             color_id=validated_data.pop('color_id'), size_id=validated_data.pop('size_id'))
 
-        return prod
+        return proditem
 
-    
+
+class FileSerializer(serializers.ModelSerializer):
+    file_id = serializers.CharField(source='id',read_only=True)
+    class Meta:
+        model = UploadFile
+        fields = ('file_id','fileName', 'fileDesc', 'myfile')
+
+
    
     
        
