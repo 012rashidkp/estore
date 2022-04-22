@@ -276,15 +276,23 @@ class deletefile(APIView):
     authentication_classes = [TokenAuthentication, ]
     def post(self,request):
         file_id = request.data.get("file_id")
-        if file_id=="":
-            return Response({"error": True, "message": "file_id cannot be blank"})
+        data={}
+        if file_id is None:
+            data["error"]=True
+            data["message"] = "please place required parameter"            
+        elif file_id=="":
+            data["error"] = True
+            data["message"] = "file_id cannot be blank"
         idexist=UploadFile.objects.filter(id=file_id)
         if idexist:
             item=UploadFile.objects.get(id=file_id)
             item.delete()
-            return Response({"error": False, "message": item.fileName + " deleted sucessfully"})    
+            data["error"]=False
+            data["message"] = item.fileName + "  deleted sucessfully"   
         else:
-            return Response({"error": True, "message":"file_id "+file_id+"  does not exist"})
+            data["error"] = True
+            data["message"] = f'{file_id}'+" file_id does not exist"
+        return Response(data)
 
 
 class fileupdate(APIView):
@@ -323,17 +331,7 @@ class fileupdate(APIView):
                 
             
             
-                   
-            
-        
-
-
-
-
-
-
-
-
+                
 
 class Catwiseproduct(APIView):
     permission_classes = [IsAuthenticated, ]
