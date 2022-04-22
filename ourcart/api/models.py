@@ -243,10 +243,8 @@ class Cart(models.Model):
 class CartProduct(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    color = models.ForeignKey(
-        ProductColor, default="no_color", on_delete=models.CASCADE)
-    size = models.ForeignKey(
-        ProductSize, default="no_sizes", on_delete=models.CASCADE)
+    color = models.ForeignKey(ProductColor, default="no_color", on_delete=models.CASCADE)
+    size = models.ForeignKey(ProductSize, default="no_sizes", on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     delivery_charge = models.PositiveBigIntegerField(default=100)
     quantity = models.PositiveIntegerField()
@@ -288,17 +286,14 @@ METHOD = (
 class Order(models.Model):
     cart = models.OneToOneField(Cart, on_delete=models.CASCADE)
     ordered_by = models.CharField(max_length=200)
-    address = models.ForeignKey(
-        ShippingAddress, on_delete=models.CASCADE, null=False)
+    address = models.ForeignKey(ShippingAddress, on_delete=models.CASCADE, null=False)
     subtotal = models.PositiveIntegerField()
     discount = models.PositiveIntegerField()
     total = models.PositiveIntegerField()
     order_status = models.CharField(max_length=50, choices=ORDER_STATUS)
     created_at = models.DateTimeField(auto_now_add=True)
-    payment_method = models.CharField(
-        max_length=20, choices=METHOD, default="Cash On Delivery")
-    payment_completed = models.BooleanField(
-        default=False, null=True, blank=True)
+    payment_method = models.CharField(max_length=20, choices=METHOD, default="Cash On Delivery")
+    payment_completed = models.BooleanField(default=False, null=True, blank=True)
 
     def __str__(self):
         return "Order: " + str(self.id)

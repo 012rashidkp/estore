@@ -1,8 +1,10 @@
 from ast import Not, Return
+from asyncio.windows_events import NULL
 from audioop import add
 from cProfile import Profile
 import email
 from itertools import permutations, product
+import numbers
 from venv import create
 from attr import field, validate
 from django.http import request, response
@@ -48,11 +50,13 @@ class RegisterView(APIView):
         serializer = UserSerializer(data=request.data)
         email_exists = User.objects.filter(email=self.request.data['email']).first()
         phone_exist = User.objects.filter(phone=self.request.data['phone']).first()
-        if email_exists:
-            return Response({"error":True,"message":"email already exist"})
-        if phone_exist:
-            return Response({"error": True, "message": "phone already exist"})
         data = {}
+        if email_exists:
+            data["error"]=True
+            data["message"] = "email already exist"
+        if phone_exist:
+            data["error"]=True
+            data["message"] = "phone already exist"
         if serializer.is_valid():
             account = serializer.save(password=make_password(self.request.data['password']))
             data['error'] = False
@@ -63,8 +67,7 @@ class RegisterView(APIView):
             data['city'] = account.city
             data['userid'] = f'{account.id}'
             token,create=Token.objects.get_or_create(user=account)
-            data['token']=token.key
-           
+            data['token']=token.key 
         else:
             data['error'] = True
             data['message'] = "email or phone already exist"
@@ -80,13 +83,16 @@ class RegisterView(APIView):
 def getToken(request):
     email = request.data.get("email")
     password = request.data.get("password")
+    data = {}
     if email is None and password is None:
-        return Response({"error": True, "message":"email or password blank"})
+        data["error"]=True
+        data["message"] = "email or password blank"
     user = authenticate(email=email, password=password)    
     if not user:
-        return Response({'error': True,"message":"invalid credentials"})
+        data["error"]=True
+        data["message"] = "invalid credentials"
     token, _ = Token.objects.get_or_create(user=user)
-    data = {}
+    
     account=user
     data["error"]=False
     data['message'] = 'login success'
@@ -105,13 +111,17 @@ def getToken(request):
 
 @api_view(['GET'])
 @permission_classes((IsAuthenticated, ))
-def get_Banner(request):
+def get_Banners(request):
     banner = Banner.objects.all()
     serializer = BannerSerializer(banner, many=True, context={'request': request})
+    data={}
     if banner.exists():
-        return Response({'error': False, 'banners': serializer.data})
-    
-    return Response({'error': True, 'message': "no datas found"})
+        data["error"]=False
+        data["banners"]=serializer.data
+    else:
+        data["error"]=True
+        data["message="] = "no datas found"
+    return Response(data)
 
         
     
@@ -120,13 +130,17 @@ def get_Banner(request):
 
 @api_view(['GET'])
 @permission_classes((IsAuthenticated, ))
-def get_category(request):
+def get_categories(request):
     category = Category.objects.all()
     serializer = CategorySerializer(category, many=True, context={'request': request})
+    data={}
     if category.exists():
-        return Response({'error': False, 'categories': serializer.data})
-
-    return Response({'error': True, 'message': "no datas found"})
+        data["error"]=False
+        data["categories"]=serializer.data
+    else:
+        data["error"]=True
+        data["message"] = "no datas found"
+    return Response(data)
 
     
 
@@ -137,9 +151,14 @@ def get_category(request):
 def get_products(request):
     products = Product.objects.all()
     serializer = Productserializer(products, many=True, context={'request': request})
+    data={}
     if products.exists():
-        return Response({'error': False, 'datas': serializer.data})
-    return Response({"error":True,"message":"no datas found"})    
+        data["error"]=False
+        data["datas"]=serializer.data
+    else:
+        data["error"]=True
+        data["message"] = "no datas found"
+    return Response(data)    
 
     
 
@@ -149,12 +168,16 @@ class ProductDetail(APIView):
     authentication_classes = [TokenAuthentication, ]
     def get(self, request):
         product_id = request.data.get("product_id")
-        prod = Product.objects.get(id=product_id)
-        serializer = Productserializer(prod,context={'request': request})
-        if prod !=None:
-            return Response({"error": False, "datas": serializer.data})
+        spec_prod = Product.objects.get(id=product_id)
+        serializer = Productserializer(spec_prod,context={'request': request})
+        data={}
+        if spec_prod !=None:
+            data["error"]=False
+            data["datas"]=serializer.data
         else:
-            return Response({"error": True, "message": "no datas found"})
+            data["error"]=True
+            data["message"] = "no datas found"
+        return Response(data)
 
 
 class setpagination(PageNumberPagination):
@@ -180,65 +203,26 @@ class ProductSearch(APIView):
 class AddtoCart(APIView):
     permission_classes = [IsAuthenticated, ]
     authentication_classes = [TokenAuthentication, ]
-
-    def post(self, request):
-        product_id = request.data['product_id']
-        product_obj = Product.objects.get(id=product_id)
-        print("product_obj ",product_obj)
-        cart_cart = Cart.objects.filter(user=request.user).filter(complit=False).first()
-        print("user ",)
-        cart_product_obj = CartProduct.objects.filter(product_id=product_id).first()
-        print("cartproduct ",cart_product_obj)
-        try:
-            if cart_cart:
-                # print(cart_cart)
-                # print("OLD CART")
-                this_product_in_cart = cart_cart.Cartproduct_set.filter(product=cart_product_obj)
-                if this_product_in_cart.exists():
-                    print("OLD CART PRODUCT--OLD CART")
-                    cartprod_uct = CartProduct.objects.filter(product=product_obj).filter(complit=False).first()
-                    cartprod_uct.quantity += 1
-                    cartprod_uct.subtotal += product_obj.selling_price
-                    cartprod_uct.save()
-                    cart_cart.total += product_obj.selling_price
-                    cart_cart.save()
-                else:
-                    # print("NEW CART PRODUCT CREATED--OLD CART")
-                    cart_product_new = CartProduct.objects.create(
-                        cart=cart_cart,
-                        price=product_obj.selling_price,
-                        quantity=1,
-                        subtotal=product_obj.selling_price
-                    )
-                    cart_product_new.add(product_obj)
-                    cart_cart.total += product_obj.selling_price
-                    cart_cart.save()
+    def post(self, request, format=None):
+        product_id = request.POST.get('product_id', None)
+        if product_id is not None:
+            try:
+                product_obj = Product.objects.get(id=product_id)
+            except Product.DoesNotExist:
+                pass
+            cart_instance, created = Cart.objects.new_or_get(request)
+            if product_obj in cart_instance.items.all():
+                cart_instance.items.remove(product_obj)
+                added = False
             else:
-                # print(cart_cart)
-                # print("NEW CART CREATED")
-                Cart.objects.create(user=request.user, total=0, complit=False)
-                new_cart = Cart.objects.filter(
-                    user=request.user).filter(complit=False).first()
-                cart_product_new = CartProduct.objects.create(
-                    cart=new_cart,
-                    price=product_obj.selling_price,
-                    quantity=1,
-                    subtotal=product_obj.selling_price
-                )
-                cart_product_new.product.add(product_obj)
-                # print("NEW CART PRODUCT CREATED")
-                new_cart.total += product_obj.selling_price
-                new_cart.save()
-
-            response_mesage = {
-                'error': False, 'message': "Product add to card successfully", "productid": product_id}
-
-        except:
-            print("error")
-            response_mesage = {'error': True,
-                               'message': "Product Not add!Somthing is Wromg"}
-
-        return Response(response_mesage)
+                cart_instance.items.add(product_obj)
+                added = True
+            data = {
+                "added": added,
+                "removed": not added,
+                "cartItemCount": cart_instance.items.count()
+            }
+            return Response(data)
 
 
 
@@ -253,11 +237,15 @@ class FileUpload(APIView):
     parser_classes = (MultiPartParser, FormParser)
     def post(self, request, *args, **kwargs): 
        file_serializer = FileSerializer(data=request.data)
+       data={}
        if file_serializer.is_valid():
-          file_serializer.save()
-          return Response({"error": False, "message": "file uploaded successfully"})
+           file_serializer.save()
+           data["error"]=False
+           data["message"] = "file uploaded successfully"
        else:
-           return Response({"error": True, "message": "file uploaded failed"})
+           data["error"]=True
+           data["message"] = "file uploaded failed"          
+       return Response(data)
 
 
 @api_view(['GET'])
@@ -266,14 +254,21 @@ def get_files(request):
     files = UploadFile.objects.all()
     filecount=UploadFile.objects.all().count()
     serializer = FileSerializer(files, many=True, context={'request': request})
+    data={}
     if files.exists():
-        return Response({'error': False,"count":str(filecount), 'files': serializer.data})
+        data["error"]=False
+        data["count"] =str(filecount)
+        data["files"] =serializer.data
+    else:
+        data["error"]=True
+        data["message"] ="no datas found"
+    return Response(data)
 
-    return Response({'error': True, 'message': "no datas found"})
+
 
 class deletefile(APIView):
-    permission_classes = [IsAuthenticated, ]
-    authentication_classes = [TokenAuthentication, ]
+    permission_classes = [IsAuthenticated,]
+    authentication_classes = [TokenAuthentication,]
     def post(self,request):
         file_id = request.data.get("file_id")
         data={}
@@ -304,14 +299,22 @@ class fileupdate(APIView):
         fileDesc = request.data.get("fileDesc")
         fileName = request.data.get("fileName")
         myfile = request.data.get("myfile")
+        data={}
+        if file_id or fileDesc or fileName or myfile is None:
+            data["error"]=True
+            data["message"] = "required parameters cannot be blank"
         if file_id=="":
-            return Response({"error": True, "message": "file_id cannot be blank"})
+            data["error"] = True
+            data["message"] = "file_id cannot be blank"
         elif fileDesc=="":
-            return Response({"error": True, "message": "fileDesc cannot be blank"})
+            data["error"] = True
+            data["message"] = "fileDesc cannot be blank"
         elif fileName=="":
-            return Response({"error": True, "message": "fileName cannot be blank"})
+            data["error"] = True
+            data["message"] = "fileName cannot be blank"
         elif myfile=="":
-            return Response({"error": True, "message": "myfile cannot be blank"})
+            data["error"] = True
+            data["message"] = "myfile cannot be blank"
         idexist=UploadFile.objects.filter(id=file_id)
         if idexist:
             queryset=UploadFile.objects.all()
@@ -319,11 +322,12 @@ class fileupdate(APIView):
             serializer = FileSerializer(files, data=request.data , context={"request": request})
             if serializer.is_valid():
                serializer.save()
-               return Response({"error": False, "message": files.fileName + " updated sucessfully"})
+               data["error"] = False
+               data["message"] = files.fileName + " updated sucessfully"
             else:
-                return Response({"error": True, "message": "something went wrong"})
-   
-        return Response({"error": True, "message": "file_id  does not exist"})
+                data["error"] = True
+                data["message"] = "something went wrong"
+        return Response(data)
 
 
         
@@ -331,7 +335,7 @@ class fileupdate(APIView):
                 
             
             
-                
+             
 
 class Catwiseproduct(APIView):
     permission_classes = [IsAuthenticated, ]
@@ -339,11 +343,22 @@ class Catwiseproduct(APIView):
     def get(self,request):
         category_id=request.data.get("category_id")
         query=Product.objects.filter(category_id=category_id)
-        serializer = Productserializer(query, many=True, context={'request': request})
-        if query.exists():
-            return Response({"error":False,"datas":serializer.data})
+        serializer = Productserializer(query, many=True,context={'request': request})
+        
+        data={}
+        if category_id is None:
+            data["error"]=True
+            data["message"]="please place required parameter"
+        elif category_id ==None:
+            data["error"]=True
+            data["message"]="category_id cannot be blank"    
+        elif query.exists():
+            data["error"]=False
+            data["datas"]=serializer.data
         else:
-            return Response({"error":True,"message":"no datas found"})
+            data["error"]=True
+            data["message"] = "no datas found"
+        return Response(data)
 
 
 
