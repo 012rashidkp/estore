@@ -1,4 +1,5 @@
 import email
+from statistics import mode
 from unicodedata import name
 from django.db import models
 
@@ -6,13 +7,12 @@ from django.db import models
 from django.contrib.auth.models import  BaseUserManager,AbstractBaseUser
 
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
-# from django.contrib.auth import get_user_model
-# User = get_user_model()
+#from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
+
 
 
 # class CustomUserManager(BaseUserManager):
@@ -69,7 +69,7 @@ from rest_framework.authtoken.models import Token
 
 
 class MyAccountManager(BaseUserManager):
-    def create_user(self, email, phone=None, city=None, password=None):
+    def create_user(self, email, phone=None,created_at=None, city=None, password=None):
         if not email:
             raise ValueError('Users must have an email address')
 
@@ -95,8 +95,8 @@ class User(AbstractBaseUser):
         verbose_name="email", max_length=60, unique=True, blank=True, null=True, default=None)
     city = models.CharField(max_length=30, blank=True, null=True, default=None)
     phone = models.CharField(max_length=30, blank=True, null=True)
-    username = models.CharField( max_length=30, unique=True, blank=True, null=True)
-
+    username = models.CharField( max_length=30,blank=True, null=True)
+    created_at=models.DateTimeField(auto_now=True)
     is_admin = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_teacher = models.BooleanField(default=False)
@@ -137,9 +137,12 @@ class Banner(models.Model):
     title = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     image = models.ImageField(upload_to="banners/")
-
+    
     def __str__(self):
         return self.title
+
+    class Meta:
+        db_table = "Banners"
 
 
 class Category(models.Model):
@@ -149,7 +152,9 @@ class Category(models.Model):
 
     def __str__(self):
         return self.title
-
+    
+    class Meta:
+        db_table = "Categories"
 
 class Product(models.Model):
     title = models.CharField(max_length=200)
@@ -165,6 +170,9 @@ class Product(models.Model):
 
     def __str__(self):
         return self.title
+    
+    class Meta:
+        db_table = "Products"
 
 
 class ProductImage(models.Model):
@@ -180,6 +188,8 @@ class ProductImage(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        db_table = "Products_Images"
 
 COLORS = (
     ("no colors", "no colors"),
@@ -202,6 +212,9 @@ class ProductColor(models.Model):
 
     def __str__(self):
         return self.colors
+    
+    class Meta:
+        db_table = "Products_Colors"
 
 
 SIZES = (
@@ -225,6 +238,9 @@ class ProductSize(models.Model):
 
     def __str__(self):
         return self.sizes
+    
+    class Meta:
+        db_table = "Products_Sizes"
 
 
 class Cart(models.Model):
@@ -238,6 +254,9 @@ class Cart(models.Model):
 
     def __str__(self):
         return "Cart: " + str(self.id)
+    
+    class Meta:
+        db_table = "Cart"
 
 
 class CartProduct(models.Model):
@@ -252,6 +271,9 @@ class CartProduct(models.Model):
 
     def __str__(self):
         return f"Cart=={self.cart.id}<==>CartProduct:{self.id}==Qualtity=={self.quantity}"
+    
+    class Meta:
+        db_table = "Cart_Items"
 
 
 class ShippingAddress(models.Model):
@@ -266,6 +288,9 @@ class ShippingAddress(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        db_table = "Shipping_Address"
 
 
 ORDER_STATUS = (
@@ -297,6 +322,9 @@ class Order(models.Model):
 
     def __str__(self):
         return "Order: " + str(self.id)
+    
+    class Meta:
+        db_table = "Product_Orders"
 
 
 class UploadFile(models.Model):
@@ -304,6 +332,9 @@ class UploadFile(models.Model):
     fileDesc = models.CharField(max_length=150, blank=False, null=False)
     myfile = models.FileField(upload_to="uploads/")
     date = models.DateField(auto_now=True)
+    
+    class Meta:
+        db_table = "Uploads"
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)

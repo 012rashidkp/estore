@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+from firebase_admin import initialize_app
+import firebase_admin
+from firebase_admin import credentials
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,7 +27,7 @@ SECRET_KEY = 'p)#@ff)0m1#-=&kje7hifm9ns1e)h!n51!!rouqb&s$pbbi_^!'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-ALLOWED_HOSTS = ['127.0.0.1', '192.168.1.100', '192.168.43.91']
+ALLOWED_HOSTS = ['127.0.0.1', '192.168.1.100', '192.168.95.131']
 
 
 
@@ -40,6 +43,9 @@ INSTALLED_APPS = [
     'api',
     'rest_framework',
     'rest_framework.authtoken',
+    'fcm_django',
+    'notification',
+  
 
     
 ]
@@ -126,6 +132,18 @@ JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
+
+FIREBASE_APP = initialize_app()
+FCM_DJANGO_SETTINGS = {
+    
+    "FCM_SERVER_KEY": "AAAAqLW-qYQ:APA91bGc0XJM32KQyb8yIjB47VkiHNKDNazbnxwe5MGz4j2KQEzgbT4pvyHgNCb2xQkpuSw7qKn0TKudQIFLSoBzBcMov07zqK48JE3cu4T_YGHwViL3cCEDFPkyQECvUHtU3yDOq0Qd",
+    
+    "ONE_DEVICE_PER_USER": False,
+   
+    "DELETE_INACTIVE_DEVICES": False,
+}
+
+
 STATIC_URL = '/static/'
 
 #STATICFILES_DIRS = [BASE_DIR / "static"]
@@ -171,5 +189,10 @@ REST_AUTH_SERIALIZERS = {
 REST_AUTH_REGISTER_SERIALIZERS = {
     "REGISTER_SERIALIZER": "users.serializers.CustomRegisterSerializer",
 }
+
+
+
+
+
 
 

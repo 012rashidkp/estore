@@ -13,6 +13,7 @@ urlpatterns = [
     path('product-details/',ProductDetail.as_view(), name="productdetails"),
     path('addtocart/', AddtoCart.as_view(), name="addtocart"),
     path('login/', views.getToken, name='getauthtoken'),
+    path('superuserlogin/', views.getSuperuser, name='getsuperuser'),
     path('fileupload/',FileUpload.as_view(),name="upload"),
     path('getfiles/', views.get_files,name="getfiles"),
     path('catwiseproduct/',views.Catwiseproduct.as_view(),name="catwise"),
